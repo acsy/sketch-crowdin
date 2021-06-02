@@ -1,0 +1,27 @@
+{
+  "name": "Crowdin for Sketch",
+  "author": "Crowdin",
+  "icon": "icon.png",
+  "compatibleVersion": 3,
+  "bundleVersion": 1,
+  "commands": [
+    {
+      "name": "Crowdin",
+      "identifier": "plugin",
+      "script": "./plugin.js",
+      "handlers": {
+        "run": "onRun",
+        "actions": {
+          "Shutdown": "onShutdown"
+        }
+      }
+    }
+  ],
+  "menu": {
+    "title": "Crowdin",
+    "items": [
+      "plugin"
+    ],
+    "isRoot": true
+  }
+}
