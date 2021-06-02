@@ -1,0 +1,276 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="../bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../jquery/dist/jquery.min.js"></script>
+    <script src="../bootstrap/dist/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand navbar-light">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav">
+                <li class="nav-item" data-toggle="tooltip" data-placement="bottom"
+                    title="Send designs for translations to Crowdin and upload translated copies back to Sketch. Use for translating static pages, like banners and brochures.">
+                    <a id="translation-nav" class="nav-link" href="#"
+                        onclick="openModal('translation');getLanguages();">Translation</a>
+                </li>
+                <li class="nav-item" data-toggle="tooltip" data-placement="bottom"
+                    title="Use this mode to work with dynamic designs, including product UI.Get real source texts from Crowdin, use them in your designs, and upload screenshots of the artboards to provide context for translators.">
+                    <a id="strings-mode-nav" class="nav-link" href="#"
+                        onclick="openModal('strings-mode');getStrings();">Strings</a>
+                </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li class="nav-item">
+                    <a id="settings-nav" class="nav-link active" href="#" onclick="openModal('settings')">Settings</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="contactUsClick()">Contact Us</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <hr id="hr">
+    <main role="main">
+        <div class="container" id="settings">
+            <form>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Personal Access Token</label>
+                        <input type="text" class="form-control" id="token">
+                        <small class="form-text text-muted">
+                            Specify organization domain name (for Crowdin Enterprise only).
+                            If you connect Crowdin account, leave the field empty
+                        </small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Organization</label>
+                        <input type="text" class="form-control" id="organization">
+                        <small class="form-text text-muted">
+                            You can generate it in your Crowdin Account Settings
+                        </small>
+                    </div>
+                </div>
+                <hr class="mb-4">
+                <button type="button" class="btn btn-light" onclick="saveCredentials()">Connect to Crowdin</button>
+                <hr class="mb-4">
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label>Select project</label>
+                        <select class="custom-select d-block w-100" id="projects" onchange="saveProject()">
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="container" id="strings-mode" style="display: none;">
+            <form>
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <input type="search" class="form-control" id="search-text" oninput="search()"
+                            placeholder="Search">
+                        <div id="strings-container">
+                        </div>
+                    </div>
+                </div>
+                <small class="form-text text-muted">
+                    Use source string for you text component in design
+                </small>
+                <hr class="mb-4">
+                <button type="button" class="btn btn-light" onclick="uploadScreenshots()">Upload Screenshots</button>
+                <small class="form-text text-muted">Send Artboards Screenshots for selected page with tagged
+                    strings</small>
+            </form>
+        </div>
+
+        <div class="container" id="translation" style="display: none;">
+            <form>
+                <div>
+                    <label>Send texts for selected</label>
+                    <button type="button" class="btn btn-light" style="margin-left: 18px;"
+                        onclick="sendStrings(true)">Page</button>
+                    <button type="button" class="btn btn-light" onclick="sendStrings(false)">Artboard</button>
+                </div>
+                <hr class="mb-4">
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label>Language</label>
+                        <select class="custom-select d-block w-100" id="languages">
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label>Translate selected</label>
+                    <button type="button" class="btn btn-light" style="margin-left: 54px;"
+                        onclick="translateComponent(true)">Page</button>
+                    <button type="button" class="btn btn-light" onclick="translateComponent(false)">Artboard</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="spinner" class="modal fade bd-example-modal-lg show" data-backdrop="static" data-keyboard="false"
+            tabindex="-1" style="display: none;" aria-modal="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content" style="width: 48px">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer" id="footer"></div>
+    </main>
+    <div id="modalFade" class="modal-backdrop fade show" style="display: none;"></div>
+</body>
+
+<script>
+
+    var openedModal = 'settings';
+    var languages;
+    var strings;
+
+    getCredentials();
+    getProjects();
+
+    function openModal(modal) {
+        if (openedModal === modal) {
+            return;
+        }
+        $(`#${openedModal}`).hide();
+        $(`#${openedModal}-nav`).removeClass('active');
+        $(`#${modal}`).show();
+        $(`#${modal}-nav`).addClass('active');
+        openedModal = modal;
+    }
+
+    function showLoading() {
+        $('#spinner').show();
+        $('#modalFade').show();
+    }
+
+    function hideLoading() {
+        $('#spinner').hide();
+        $('#modalFade').hide();
+    }
+
+    function contactUsClick() {
+        window.postMessage('contactUs');
+    }
+
+    function getCredentials() {
+        return window.postMessage('getCredentials').then(creds => {
+            $('#organization').val(creds[0].organization);
+            $('#token').val(creds[0].token);
+        });
+    }
+
+    function getProjects() {
+        showLoading();
+        window.postMessage('getProjects')
+            .then(info => {
+                const projectsInfo = info[0];
+                const options = projectsInfo.projects.map(pr => {
+                    if (pr.id === projectsInfo.selectedProjectId) {
+                        return `<option value="${pr.id}" selected>${pr.name}</option>`;
+                    } else {
+                        return `<option value="${pr.id}">${pr.name}</option>`;
+                    }
+                }).join('');
+                $('#projects').find('option').remove().end().append(options);
+            })
+            .then(hideLoading);
+    }
+
+    function saveCredentials() {
+        const token = $('#token').val();
+        const organization = $('#organization').val();
+        window.postMessage('saveCredentials', { token, organization })
+            .then(getCredentials)
+            .then(getProjects)
+            .then(clearStorage);
+    }
+
+    function saveProject() {
+        const projectId = $('#projects option:selected').val();
+        window.postMessage('saveProject', projectId)
+            .then(clearStorage);
+    }
+
+    function getLanguages() {
+        if (!languages) {
+            showLoading();
+            window.postMessage('getLanguages')
+                .then(res => {
+                    languages = res[0];
+                    let options = '<option value="-1">All Languages</option>';
+                    options += languages.map(lan => {
+                        return `<option value="${lan.id}">${lan.name}</option>`;
+                    }).join('');
+                    $('#languages').find('option').remove().end().append(options);
+                })
+                .then(hideLoading);
+        }
+    }
+
+    function getStrings() {
+        if (!strings) {
+            showLoading();
+            window.postMessage('getStrings')
+                .then(res => {
+                    strings = res[0];
+                    search();
+                })
+                .then(hideLoading);
+        }
+    }
+
+    function translateComponent(wholePage) {
+        showLoading();
+        const languageId = Number($('#languages option:selected').val());
+        window.postMessage('translate', languageId, wholePage).then(hideLoading);
+    }
+
+    function sendStrings(wholePage) {
+        showLoading();
+        window.postMessage('sendStrings', wholePage).then(hideLoading);
+    }
+
+    function useString(e) {
+        showLoading();
+        const id = Number($(e).attr('int-id'));
+        const text = $(e).text();
+        window.postMessage('useString', { id, text }).then(hideLoading);
+    }
+
+    function uploadScreenshots() {
+        showLoading();
+        window.postMessage('uploadScreenshots').then(hideLoading);
+    }
+
+    function clearStorage() {
+        strings = undefined;
+        languages = undefined;
+    }
+
+    function search() {
+        let text = $('#search-text').val();
+        if (text) {
+            text = text.trim().toLowerCase();
+        }
+        console.log(text);
+        const arr = strings || [];
+        const filteredStrings = (!text || text.length === 0)
+            ? arr
+            : arr.filter(str => str.text.toLowerCase().includes(text));
+        const texts = filteredStrings.map(str => `<p class="hover" id="string-row" onclick="useString(this)" int-id="${str.id}">${str.text}</p>`)
+        $('#strings-container').find('p').remove().end().append(texts);
+    }
+</script>
+
+</html>
